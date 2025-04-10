@@ -20,8 +20,8 @@ if not os.path.exists(model_path):
 else:
     print("Model already exists.")
 
-# load the model
-session = ort.InferenceSession("vit_skin.onnx")
+# # load the model
+# session = ort.InferenceSession("vit_skin.onnx")
 
 
 app = Flask(__name__)
@@ -96,4 +96,4 @@ def index():
 
 if __name__ == '__main__':
     os.makedirs("uploads", exist_ok=True)
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=10000)

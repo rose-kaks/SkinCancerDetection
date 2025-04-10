@@ -1,4 +1,3 @@
 #!/bin/bash
-echo "Starting Skin Health Detector Backend..."
+echo "Starting Skin Health Detector..."
 python app.py
-uvicorn app:app --host=0.0.0.0 --port=10000

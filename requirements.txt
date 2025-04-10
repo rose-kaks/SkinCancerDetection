@@ -1,7 +1,6 @@
-gdown
-onnxruntime
 flask
-uvicorn
+onnxruntime
+gdown
 torch
 torchvision
 pillow
