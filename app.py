@@ -44,10 +44,10 @@ def predict_skin_disease(image):
     ort_inputs = {onnx_model.get_inputs()[0].name: image}
     ort_outs = onnx_model.run(None, ort_inputs)
     
-    logits = torch.tensor(ort_outs[0])
-    probs = torch.softmax(logits, dim=1)
-    pred = torch.argmax(probs, dim=1).item()
-    confidence = probs[0, pred].item() * 100
+    logits = np.array(ort_outs[0])
+    probs = np.exp(logits) / np.sum(np.exp(logits), axis=1, keepdims=True)  # Softmax
+    pred = np.argmax(probs, axis=1)[0]  # Argmax
+    confidence = probs[0, pred] * 100
 
     return ("nv" if pred == 0 else "mel"), confidence
 
