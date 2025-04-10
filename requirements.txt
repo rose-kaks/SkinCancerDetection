@@ -1,0 +1,8 @@
+gdown
+onnxruntime
+flask
+uvicorn
+torch
+torchvision
+pillow
+numpy
