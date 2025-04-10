@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Skin Disease Classifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        text-align: center;
+        background: linear-gradient(135deg, #f0f4f8, #e0f7fa);
+        padding-top: 40px;
+        margin: 0;
+      }
+      h2 {
+        font-size: 26px;
+        color: #333;
+      }
+      h3 {
+        color: #444;
+        font-weight: 500;
+      }
+      input[type="file"], button, #captureBtn, #diagnoseBtn {
+        padding: 10px 20px;
+        margin-top: 20px;
+        border: none;
+        background: #007BFF;
+        color: white;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: background 0.3s;
+      }
+      input[type="file"] {
+        background: none;
+        color: #333;
+        border: 1px dashed #ccc;
+        padding: 12px;
+      }
+      button:hover, #captureBtn:hover, #diagnoseBtn:hover {
+        background: #0056b3;
+      }
+      img, #webcam, #snapshot {
+        margin-top: 20px;
+        width: 224px;
+        height: 224px;
+        border-radius: 12px;
+        object-fit: cover;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      }
+      .container {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+      }
+      .webcam-container, .upload-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 25px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        width: 300px;
+      }
+      .hidden {
+        display: none;
+      }
+      #loading {
+        margin-top: 15px;
+        font-weight: bold;
+        color: #007BFF;
+      }
+      .result {
+        margin-top: 40px;
+        background: white;
+        display: inline-block;
+        padding: 20px 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        font-size: 20px;
+        font-weight: bold;
+        color: #007BFF;
+      }
+    </style>
+  </head>
+  
+<body>
+
+<h2>🩺 Skin Disease Classifier (nv vs mel)</h2>
+
+<div class="container">
+  <!-- File Upload Section -->
+  <div class="upload-container">
+    <h3>Upload Image</h3>
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+      <input type="file" name="image" accept="image/*" id="fileInput" required><br>
+      <button type="submit">Diagnose</button>
+    </form>
+  </div>
+
+  <!-- Webcam Section -->
+  <div class="webcam-container">
+    <h3>Use Webcam</h3>
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="canvas" class="hidden"></canvas>
+    <button id="captureBtn">Capture Image</button>
+    <img id="snapshot" class="hidden">
+    <form method="POST" id="webcamForm" class="hidden" enctype="multipart/form-data">
+      <input type="hidden" name="webcamImage" id="webcamImageInput">
+      <button type="submit" id="diagnoseBtn">Diagnose</button>
+    </form>
+    <div id="loading" class="hidden">Processing...</div>
+  </div>
+</div>
+
+{% if result %}
+  <div class="result">
+    Prediction: {{ result.upper() }}
+    <br><br>
+    <img src="{{ url_for('uploaded_file', filename=img) }}">
+  </div>
+{% endif %}
+
+<script>
+  // Webcam setup
+  const webcam = document.getElementById('webcam');
+  const canvas = document.getElementById('canvas');
+  const snapshot = document.getElementById('snapshot');
+  const captureBtn = document.getElementById('captureBtn');
+  const webcamForm = document.getElementById('webcamForm');
+  const diagnoseBtn = document.getElementById('diagnoseBtn');
+  const loading = document.getElementById('loading');
+  let webcamFormData = null;
+
+  // Start webcam
+  if (navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      .then(function(stream) {
+        webcam.srcObject = stream;
+      })
+      .catch(function(error) {
+        console.error("Webcam error: ", error);
+        alert("Could not access webcam. Please check permissions.");
+      });
+  }
+
+  // Capture image
+  captureBtn.addEventListener('click', function() {
+    canvas.width = 224;  // Fixed size for our model
+    canvas.height = 224;
+    
+    // Draw webcam image to canvas (scaled to 224x224)
+    const context = canvas.getContext('2d');
+    context.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+    
+    // Show preview
+    snapshot.src = canvas.toDataURL('image/jpeg', 0.7);
+    snapshot.classList.remove('hidden');
+    
+    // Prepare FormData
+    canvas.toBlob(function(blob) {
+      webcamFormData = new FormData();
+      webcamFormData.append('webcamImage', blob, 'capture.jpg');
+    }, 'image/jpeg', 0.7);
+    
+    webcamForm.classList.remove('hidden');
+    captureBtn.textContent = 'Retake';
+  });
+
+  // Handle webcam form submission
+  webcamForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!webcamFormData) return;
+    
+    // Show loading indicator
+    diagnoseBtn.disabled = true;
+    loading.classList.remove('hidden');
+    
+    fetch('/', {
+      method: 'POST',
+      body: webcamFormData
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.text();
+    })
+    .then(html => {
+      document.body.innerHTML = html;
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred during diagnosis. Please try again.');
+    })
+    .finally(() => {
+      diagnoseBtn.disabled = false;
+      loading.classList.add('hidden');
+    });
+  });
+</script>
+
+</body>
+</html>
