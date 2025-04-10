@@ -3,11 +3,9 @@ import os
 import onnxruntime as ort
 from PIL import Image
 import numpy as np
-import torch
 import torchvision.transforms as transforms
 from datetime import datetime
 from werkzeug.utils import secure_filename
-import requests
 import gdown
 
 model_path = "vit_skin.onnx"
